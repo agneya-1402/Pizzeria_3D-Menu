@@ -1,33 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AR Pizzeria - Final Production</title>
+    <title>AR Pizzeria - Final</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=VT323&display=swap" rel="stylesheet">
     
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Poppins', sans-serif; }
         
-        /* STATUS BAR */
-        #status-bar {
-            position: absolute; top: 0; left: 0; width: 100%;
-            padding: 8px; background: #222; color: #0f0;
-            font-family: monospace; font-size: 12px;
-            text-align: center; z-index: 9999;
-        }
-
         /* UI OVERLAY */
         #ui-layer { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             pointer-events: none; display: flex; flex-direction: column; 
-            justify-content: flex-end; z-index: 1000; 
+            justify-content: space-between; z-index: 1000; 
         }
 
+        /* HEADER & CART BUTTON */
+        .header {
+            padding: 20px; display: flex; justify-content: flex-end; pointer-events: auto;
+        }
+        .cart-btn {
+            background: white; color: #C8102E; padding: 10px 25px; 
+            border-radius: 30px; font-weight: 700; border: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer;
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        /* PIZZA INFO (Bottom) */
+        .bottom-panel {
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            padding: 20px; text-align: center; pointer-events: auto;
+        }
+        .pizza-info { text-shadow: 0 2px 4px rgba(0,0,0,0.8); margin-bottom: 15px; }
+        
         /* CONTROLS */
         .controls { 
-            padding: 20px; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); 
-            display: flex; justify-content: center; gap: 15px; pointer-events: auto; align-items: center; 
+            display: flex; justify-content: center; gap: 20px; align-items: center; 
         }
         .nav-btn { 
             width: 50px; height: 50px; border-radius: 50%; background: #C8102E; 
@@ -37,45 +46,87 @@
             padding: 12px 30px; border-radius: 25px; background: white; 
             color: #C8102E; border: none; font-weight: bold; font-size: 16px; cursor: pointer; 
         }
-        .pizza-info { 
-            text-align: center; margin-bottom: 10px; 
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8); 
+
+        /* BILL / INVOICE MODAL */
+        #bill-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 2000; pointer-events: auto;
+            align-items: center; justify-content: center;
+        }
+        .receipt {
+            background: #fff; padding: 25px; width: 85%; max-width: 350px;
+            font-family: 'VT323', monospace; font-size: 18px; color: #333;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); transform: rotate(-1deg);
+        }
+        .receipt h2 { text-align: center; margin: 0 0 10px 0; border-bottom: 2px dashed #000; padding-bottom: 10px; }
+        .receipt-item { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .receipt-divider { border-top: 1px dashed #000; margin: 10px 0; }
+        .receipt-total { display: flex; justify-content: space-between; font-weight: bold; font-size: 22px; }
+        .close-bill {
+            margin-top: 20px; width: 100%; padding: 10px; background: #C8102E; 
+            color: white; border: none; font-family: 'Poppins', sans-serif; cursor: pointer;
         }
 
         /* SCAN PROMPT */
         #scan-prompt { 
-            position: absolute; top: 50%; left: 50%; 
-            transform: translate(-50%, -50%); 
-            background: rgba(0,0,0,0.7); color: white; 
-            padding: 20px; border-radius: 12px; border: 2px solid white; 
-            text-align: center; z-index: 1001; 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background: rgba(0,0,0,0.7); color: white; padding: 20px; 
+            border-radius: 12px; border: 2px solid white; text-align: center; z-index: 1001; 
         }
-
+        
         /* FIXES */
-        video { z-index: -10 !important; } 
-        .a-canvas { z-index: 1 !important; }
+        video { z-index: -10 !important; } .a-canvas { z-index: 1 !important; }
     </style>
 </head>
 
 <body>
 
-    <div id="status-bar">System Ready.</div>
-
     <div id="ui-layer">
+        <div class="header">
+            <button class="cart-btn" onclick="showBill()">
+                🛒 <span id="cart-count">0</span>
+            </button>
+        </div>
+
         <div id="scan-prompt">
             <h3>SCAN MARKER</h3>
             <p>Point camera at the Pizza Icon</p>
         </div>
         
-        <div class="pizza-info">
-            <h2 id="p-name" style="color:white; margin:0;">Loading Menu...</h2>
-            <p id="p-price" style="color:#eee; margin:5px;">--</p>
-        </div>
+        <div class="bottom-panel">
+            <div class="pizza-info">
+                <h2 id="p-name" style="color:white; margin:0;">Loading Menu...</h2>
+                <p id="p-price" style="color:#eee; margin:5px; font-size: 1.2em;">--</p>
+            </div>
 
-        <div class="controls">
-            <button class="nav-btn" onclick="changePizza(-1)">&#8249;</button>
-            <button class="action-btn" onclick="addToCart()">ADD CART (<span id="cart-count">0</span>)</button>
-            <button class="nav-btn" onclick="changePizza(1)">&#8250;</button>
+            <div class="controls">
+                <button class="nav-btn" onclick="changePizza(-1)">&#8249;</button>
+                <button class="action-btn" onclick="addToCart()">ADD TO ORDER</button>
+                <button class="nav-btn" onclick="changePizza(1)">&#8250;</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bill-modal">
+        <div class="receipt">
+            <h2>PIZZERIA INVOICE</h2>
+            <div id="bill-items">
+                <div style="text-align:center;">No items yet!</div>
+            </div>
+            
+            <div class="receipt-divider"></div>
+            
+            <div class="receipt-item"><span>Subtotal:</span> <span id="bill-sub">₹0</span></div>
+            <div class="receipt-item"><span>CGST (9%):</span> <span id="bill-cgst">₹0</span></div>
+            <div class="receipt-item"><span>SGST (9%):</span> <span id="bill-sgst">₹0</span></div>
+            
+            <div class="receipt-divider"></div>
+            
+            <div class="receipt-total">
+                <span>TOTAL:</span> <span id="bill-total">₹0</span>
+            </div>
+
+            <button class="close-bill" onclick="closeBill()">Close</button>
         </div>
     </div>
 
@@ -85,25 +136,25 @@
         renderer="logarithmicDepthBuffer: true;" 
         vr-mode-ui="enabled: false">
         
+        <a-entity light="type: ambient; color: #FFF; intensity: 1.2"></a-entity>
+        <a-entity light="type: directional; color: #FFF; intensity: 1.5; position: -1 1 0"></a-entity>
+
         <a-marker type="pattern" url="./marker.patt" id="marker" emitevents="true" smooth="true" smoothCount="5">
             
-            <a-entity light="type: ambient; color: #FFF; intensity: 1.2"></a-entity>
-            <a-entity light="type: directional; color: #FFF; intensity: 1.5; position: -1 1 0"></a-entity>
-
-            <a-box position="0 1.5 0" scale="0.1 0.1 0.1" material="color: red; opacity: 0.8;" animation="property: rotation; to: 0 360 0; loop: true; dur: 3000"></a-box>
-
             <a-entity 
                 id="pizza-entity"
-                scale="1 1 1" 
+                scale="5 5 5" 
+                position="2.5 0.5 -3.0"
                 rotation="0 0 0">
             </a-entity>
+
         </a-marker>
 
         <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-        // === MENU DATA (Matched to your files) ===
+        // === DATA ===
         const pizzaMenu = [
             { file: "margherita_1.glb", name: "Classic Margherita", price: 450 },
             { file: "margherita_2.glb", name: "Double Cheese", price: 490 },
@@ -120,72 +171,97 @@
         ];
 
         let currentIndex = 0;
-        let cartCount = 0;
-        
+        let cart = []; // Stores added pizzas
+
         // REFERENCES
-        const marker = document.querySelector("#marker");
-        const scanPrompt = document.getElementById("scan-prompt");
-        const statusBar = document.getElementById("status-bar");
         const pizzaEntity = document.getElementById("pizza-entity");
+        const scanPrompt = document.getElementById("scan-prompt");
 
-        // === MARKER EVENTS ===
-        marker.addEventListener("markerFound", () => { 
-            scanPrompt.style.display = "none";
-            statusBar.innerText = "Tracking Marker...";
-            statusBar.style.color = "#0f0"; // Green
-        });
-        
-        marker.addEventListener("markerLost", () => { 
-            scanPrompt.style.display = "block";
-            statusBar.innerText = "Searching for Marker...";
-            statusBar.style.color = "orange";
-        });
+        // === AR EVENTS ===
+        const marker = document.querySelector("#marker");
+        marker.addEventListener("markerFound", () => { scanPrompt.style.display = "none"; });
+        marker.addEventListener("markerLost", () => { scanPrompt.style.display = "block"; });
 
-        // === CHANGE PIZZA LOGIC ===
+        // === PIZZA SWITCHING ===
         function changePizza(dir) {
             currentIndex += dir;
-            // Wrap around logic
             if (currentIndex < 0) currentIndex = pizzaMenu.length - 1;
             if (currentIndex >= pizzaMenu.length) currentIndex = 0;
-
             updatePizza();
         }
 
         function updatePizza() {
             const data = pizzaMenu[currentIndex];
             
-            statusBar.innerText = "Loading: " + data.name + "...";
+            // Swap Model
+            pizzaEntity.setAttribute("gltf-model", `./assets/pizzas/${data.file}`);
             
-            // 1. Swap the Model File
-            const newPath = `./assets/pizzas/${data.file}`;
-            pizzaEntity.setAttribute("gltf-model", newPath);
-            
-            // 2. Update Text
+            // Update Text
             document.getElementById("p-name").innerText = data.name;
             document.getElementById("p-price").innerText = "₹ " + data.price;
-
-            // 3. Status Update on Load
-            pizzaEntity.addEventListener('model-loaded', () => {
-                statusBar.innerText = "Active: " + data.name;
-            }, { once: true });
         }
 
-        // === CART LOGIC ===
+        // === CART & BILLING LOGIC ===
         function addToCart() {
-            cartCount++;
-            document.getElementById("cart-count").innerText = cartCount;
-            // Visual feedback
+            const item = pizzaMenu[currentIndex];
+            cart.push(item);
+            
+            // Update Badge
+            document.getElementById("cart-count").innerText = cart.length;
+            
+            // Animation Feedback
             const btn = document.querySelector('.action-btn');
-            btn.style.background = "#28a745"; // Green
+            const oldText = btn.innerText;
             btn.innerText = "ADDED!";
+            btn.style.background = "#4caf50";
             setTimeout(() => {
+                btn.innerText = oldText;
                 btn.style.background = "white";
-                btn.innerText = `ADD CART (${cartCount})`;
             }, 800);
         }
 
-        // === INITIALIZE ===
-        // Load the first pizza immediately
+        function showBill() {
+            const modal = document.getElementById("bill-modal");
+            const itemsList = document.getElementById("bill-items");
+            
+            modal.style.display = "flex";
+            
+            // 1. List Items & Calc Subtotal
+            let subtotal = 0;
+            let html = "";
+            
+            if(cart.length === 0) {
+                html = "<div style='text-align:center; font-style:italic;'>Your cart is empty...</div>";
+            } else {
+                cart.forEach(item => {
+                    subtotal += item.price;
+                    html += `
+                        <div class="receipt-item">
+                            <span>${item.name}</span>
+                            <span>${item.price}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            // 2. Calculate Taxes
+            const cgst = Math.round(subtotal * 0.09); // 9%
+            const sgst = Math.round(subtotal * 0.09); // 9%
+            const total = subtotal + cgst + sgst;
+
+            // 3. Render
+            itemsList.innerHTML = html;
+            document.getElementById("bill-sub").innerText = "₹" + subtotal;
+            document.getElementById("bill-cgst").innerText = "₹" + cgst;
+            document.getElementById("bill-sgst").innerText = "₹" + sgst;
+            document.getElementById("bill-total").innerText = "₹" + total;
+        }
+
+        function closeBill() {
+            document.getElementById("bill-modal").style.display = "none";
+        }
+
+        // Init
         updatePizza();
 
     </script>
