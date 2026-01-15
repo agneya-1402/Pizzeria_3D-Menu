@@ -1,102 +1,131 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AR Pizzeria Debug Mode</title>
+    <title>AR Pizzeria - Robust Mode</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Poppins', sans-serif; }
 
-        /* === DEBUG OVERLAY (Shows status on phone screen) === */
-        #debug {
+        /* === SYSTEM STATUS BAR (Debug) === */
+        #status-bar {
             position: absolute;
-            top: 10px; left: 10px;
-            width: 300px;
-            background: rgba(0, 0, 0, 0.85);
-            color: #00ff00; /* Hacker Green */
-            padding: 15px;
+            top: 0; left: 0; width: 100%;
+            padding: 10px;
+            background: #ffeb3b; /* Bright Yellow */
+            color: #000;
+            font-weight: bold;
+            text-align: center;
             z-index: 9999;
-            font-family: monospace;
-            font-size: 14px;
-            pointer-events: none;
-            border-radius: 8px;
-            white-space: pre-wrap; /* Keeps line breaks */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
 
-        /* === GREY SCREEN FIXES === */
-        .a-canvas { z-index: 1 !important; }
-        video { z-index: -1 !important; display: block !important; }
-
-        /* === UI LAYER === */
+        /* === UI OVERLAY === */
         #ui-layer {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; 
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: flex-end; /* Push controls to bottom */
             z-index: 1000;
         }
 
-        .header { padding: 20px; display: flex; justify-content: flex-end; pointer-events: auto; }
-        .cart-btn { background: white; color: #C8102E; padding: 10px 20px; border-radius: 30px; font-weight: 600; border: none; }
-        .info-panel { text-align: center; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.8); margin-top: 40px; }
-        .pizza-name { font-family: 'Playfair Display', serif; font-size: 2.5rem; margin: 0; }
-        .pizza-price { font-size: 1.2rem; margin-top: 5px; }
-        .controls { padding: 40px 20px; display: flex; justify-content: center; gap: 20px; pointer-events: auto; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); }
-        .nav-btn { background: #C8102E; color: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid white; font-size: 20px; display: flex; align-items: center; justify-content: center; }
-        .add-btn { background: white; color: #C8102E; padding: 15px 40px; border-radius: 30px; font-weight: 700; border: none; }
-
+        /* Scan Prompt */
         #scan-prompt {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
+            width: 70%;
             color: white;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,0.7);
             padding: 20px;
-            border-radius: 10px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid white;
             z-index: 1001;
+            display: block;
         }
+
+        /* UI Controls */
+        .controls {
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            pointer-events: auto;
+        }
+
+        button {
+            border: none;
+            outline: none;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .nav-btn {
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            background: #C8102E; color: white;
+            font-size: 24px; font-weight: bold;
+        }
+
+        .action-btn {
+            padding: 0 30px;
+            border-radius: 25px;
+            background: white; color: #C8102E;
+            font-size: 16px; font-weight: bold;
+        }
+        
+        /* FIX VIDEO Z-INDEX */
+        video { z-index: -10 !important; }
+        .a-canvas { z-index: 1 !important; }
+
     </style>
 </head>
 
 <body>
 
-    <div id="debug">System Initializing...<br>Waiting for Camera...</div>
+    <div id="status-bar">System Initializing...</div>
 
     <div id="ui-layer">
-        <div class="header"><button class="cart-btn">Cart <span id="cart-count">0</span></button></div>
-        <div class="info-panel">
-            <h1 class="pizza-name" id="p-name">Loading...</h1>
-            <div class="pizza-price" id="p-price">₹ --</div>
+        <div id="scan-prompt">
+            <h3>SCAN MARKER</h3>
+            <p>Point camera at the Pizza Icon.</p>
         </div>
+
+        <div style="text-align: center; margin-bottom: 10px; text-shadow: 0 2px 2px black;">
+            <h2 id="p-name" style="color:white; margin:0;">Loading Menu...</h2>
+            <p id="p-price" style="color:#eee; margin:5px;">--</p>
+        </div>
+
         <div class="controls">
-            <button class="nav-btn" onclick="changePizza(-1)">←</button>
-            <button class="add-btn" onclick="addToCart()">Add To Cart</button>
-            <button class="nav-btn" onclick="changePizza(1)">→</button>
+            <button class="nav-btn" onclick="changePizza(-1)">&#8249;</button>
+            <button class="action-btn" onclick="addToCart()">ADD TO CART (<span id="cart-count">0</span>)</button>
+            <button class="nav-btn" onclick="changePizza(1)">&#8250;</button>
         </div>
     </div>
 
-    <div id="scan-prompt">Point camera at the Menu Flyer!</div>
-
     <a-scene 
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;" 
-        renderer="logarithmicDepthBuffer: true; antialias: true;"
+        embedded 
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; maxDetectionRate: 60; patternRatio: 0.90;"
+        renderer="logarithmicDepthBuffer: true; colorManagement: true;" 
         vr-mode-ui="enabled: false">
         
         <a-assets>
             <a-asset-item id="pizza-model" src="./assets/scene.gltf"></a-asset-item>
         </a-assets>
 
-        <a-marker type="pattern" url="./marker.patt" id="marker" smooth="true" smoothCount="10" smoothTolerance=".01" smoothThreshold="5">
+        <a-marker type="pattern" url="./marker.patt" id="marker" emitevents="true" smooth="true" smoothCount="5" smoothTolerance="0.01">
             
-            <a-box position="0 0.5 0" scale="0.5 0.5 0.5" material="color: red; opacity: 0.7;"></a-box>
+            <a-box position="0 0.5 0" scale="0.5 0.5 0.5" material="color: red; opacity: 0.8;" animation="property: rotation; to: 0 360 0; loop: true; dur: 5000"></a-box>
 
             <a-entity 
-                id="pizza-entity"
+                id="pizza-container"
                 gltf-model="#pizza-model" 
                 scale="0.5 0.5 0.5" 
                 rotation="0 0 0"
@@ -109,98 +138,123 @@
     </a-scene>
 
     <script>
-        // === LOGGING FUNCTION ===
-        function log(text) {
-            const d = document.getElementById('debug');
-            d.innerHTML += "<br>> " + text;
-            console.log(text);
-        }
-
+        // === GLOBAL VARIABLES ===
+        const statusBar = document.getElementById("status-bar");
+        const scanPrompt = document.getElementById("scan-prompt");
+        
         const pizzaMenu = [
             { name: "Pepperoni Pizza", price: 550 },
             { name: "Margherita", price: 450 },
             { name: "BBQ Chicken", price: 600 },
-            { name: "Veggie Supreme", price: 500 }
+            { name: "Veggie Supreme", price: 500 },
+            { name: "Hawaiian", price: 520 },
+            { name: "Cheese Burst", price: 580 },
+            { name: "Mushroom", price: 480 },
+            { name: "Spicy Chicken", price: 620 },
+            { name: "Meat Lovers", price: 700 },
+            { name: "Farmhouse", price: 510 },
+            { name: "Tandoori Paneer", price: 530 },
+            { name: "Mexican Green", price: 540 }
         ];
+
         let currentIndex = 0;
         let cartCount = 0;
-        let pizzaMeshes = [];
+        let pizzaObjects = [];
 
         // === MARKER EVENTS ===
         const marker = document.querySelector("#marker");
-        const prompt = document.querySelector("#scan-prompt");
 
         marker.addEventListener("markerFound", () => {
-            prompt.style.display = "none";
-            log("MARKER FOUND! (Look for Red Box)");
-        });
-        marker.addEventListener("markerLost", () => {
-            prompt.style.display = "block";
-            // log("Marker Lost..."); // Commented out to reduce spam
+            statusBar.style.backgroundColor = "#4caf50"; // Green
+            statusBar.innerText = "MARKER DETECTED";
+            scanPrompt.style.display = "none";
         });
 
-        // === 3D MODEL LOGIC ===
+        marker.addEventListener("markerLost", () => {
+            statusBar.style.backgroundColor = "#ff9800"; // Orange
+            statusBar.innerText = "Looking for Marker...";
+            scanPrompt.style.display = "block";
+        });
+
+        // === SMART 3D HANDLER ===
         AFRAME.registerComponent('pizza-handler', {
             init: function () {
                 const el = this.el;
-                log("Downloading Model...");
+                statusBar.innerText = "Downloading 3D Model...";
                 
                 el.addEventListener('model-loaded', () => {
-                    log("Model Downloaded Successfully!");
-                    const object3D = el.getObject3D('mesh');
+                    statusBar.innerText = "Model Loaded. Processing...";
                     
-                    if (!object3D) {
-                        log("ERROR: No Mesh found in GLTF.");
-                        return;
+                    const object3D = el.getObject3D('mesh');
+                    if (!object3D) return;
+
+                    // === STRATEGY: FIND TOP-LEVEL PIZZAS ===
+                    // 1. Try direct children (Scene -> Pizzas)
+                    let candidates = object3D.children;
+
+                    // 2. If only 1 child exists (likely "Sketchfab_Scene"), go deeper
+                    if (candidates.length === 1) {
+                        console.log("Digging deeper into root node...");
+                        candidates = candidates[0].children;
                     }
 
-                    object3D.traverse((child) => {
-                        if (child.isMesh) {
-                            pizzaMeshes.push(child);
-                            child.visible = false;
+                    // 3. If still 1 (likely "RootNode"), go deeper again
+                    if (candidates.length === 1) {
+                        console.log("Digging deeper into secondary node...");
+                        candidates = candidates[0].children;
+                    }
+
+                    // Store valid objects
+                    candidates.forEach((child) => {
+                        // Filter out cameras or lights if any exist in the file
+                        if (child.type === "Group" || child.type === "Mesh" || child.type === "Object3D") {
+                            pizzaObjects.push(child);
+                            child.visible = false; // Hide initially
                         }
                     });
 
-                    log("Found " + pizzaMeshes.length + " pizza parts.");
-                    
-                    if(pizzaMeshes.length > 0) {
-                        updatePizzaDisplay();
+                    console.log("Found " + pizzaObjects.length + " pizza objects.");
+                    statusBar.innerText = "Ready! Found " + pizzaObjects.length + " items.";
+
+                    if (pizzaObjects.length > 0) {
+                        updateDisplay();
                     }
                 });
-
+                
                 el.addEventListener('model-error', (e) => {
-                    log("CRITICAL ERROR: Model failed to load.");
-                    log("Check: assets/scene.gltf path?");
-                    log(e.detail.src);
+                    statusBar.style.backgroundColor = "red";
+                    statusBar.innerText = "ERROR: Could not load 3D Model.";
                 });
             }
         });
 
-        function updatePizzaDisplay() {
-            pizzaMeshes.forEach(mesh => mesh.visible = false);
-            if(pizzaMeshes[currentIndex]) pizzaMeshes[currentIndex].visible = true;
+        // === UI LOGIC ===
+        function updateDisplay() {
+            // Hide all
+            pizzaObjects.forEach(obj => obj.visible = false);
             
-            const data = pizzaMenu[currentIndex % pizzaMenu.length] || {name: "Unknown", price: 0};
+            // Show current
+            if (pizzaObjects[currentIndex]) {
+                pizzaObjects[currentIndex].visible = true;
+            }
+
+            // Update Text
+            const data = pizzaMenu[currentIndex % pizzaMenu.length];
             document.getElementById("p-name").innerText = data.name;
-            document.getElementById("p-price").innerText = "₹ " + data.price + "/-";
+            document.getElementById("p-price").innerText = "₹ " + data.price;
         }
 
         function changePizza(dir) {
             currentIndex += dir;
             if (currentIndex < 0) currentIndex = pizzaMenu.length - 1;
             if (currentIndex >= pizzaMenu.length) currentIndex = 0;
-            updatePizzaDisplay();
+            updateDisplay();
         }
 
         function addToCart() {
             cartCount++;
             document.getElementById("cart-count").innerText = cartCount;
         }
-
-        // Final System Check
-        window.onload = function() {
-            log("System Ready. Scan Flyer now.");
-        };
     </script>
 </body>
 </html>
